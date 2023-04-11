@@ -1,0 +1,336 @@
+<?php
+
+/**
+ * Plugin Name: Woocommerce Shortcodes
+ * Plugin URI: http://www.immedia-creative.com
+ * Description: This plugin displays Woocommerce Shortcodes
+ * Version: 1.0.0
+ * Author: Cameron
+ * Author URI: http://www.immedia-creative.com
+ * License: GPL2
+ */
+
+		// Override use of default add to cart and use custom cart button from simple-add-to-cart
+        function woocommerce_template_loop_simple_add_to_cart( $args = array() ) { 
+            global $product; 
+         
+            if ( $product ) { 
+                $defaults = array( 
+                    'quantity' => 1,  
+                    'class' => implode( ' ', array_filter( array( 
+                            'button',  
+                            'product_type_' . $product->get_type(),  
+                            $product->is_purchasable() && $product->is_in_stock() ? 'add_to_cart_button' : '',  
+                            $product->supports( 'ajax_add_to_cart' ) ? 'ajax_add_to_cart' : '',  
+         ) ) ),  
+         ); 
+         
+                $args = apply_filters( 'woocommerce_loop_add_to_cart_args', wp_parse_args( $args, $defaults ), $product ); 
+         
+                wc_get_template( 'loop/simple-add-to-cart.php', $args ); 
+            } 
+        } 
+
+	/**
+	 * Display a single product price + cart button.
+	 *
+	 * @param array $atts Attributes.
+	 * @return string
+	 */
+	 add_shortcode( 'simple_add_to_cart', 'simple_add_to_cart' );
+	 
+	function simple_add_to_cart( $atts ) {
+		global $post;
+
+		if ( empty( $atts ) ) {
+			return '';
+		}
+
+		$atts = shortcode_atts( array(
+			'id'         => '',
+			'quantity'   => '1',
+			'sku'        => '',
+			'more_info'        => '',
+		), $atts, 'simple_add_to_cart' );
+
+		if ( ! empty( $atts['id'] ) ) {
+			$product_data = get_post( $atts['id'] );
+		} elseif ( ! empty( $atts['sku'] ) ) {
+			$product_id   = wc_get_product_id_by_sku( $atts['sku'] );
+			$product_data = get_post( $product_id );
+		} else {
+			return '';
+		}
+
+		$product = is_object( $product_data ) && in_array( $product_data->post_type, array( 'product', 'product_variation' ), true ) ? wc_setup_product_data( $product_data ) : false;
+
+		if ( ! $product ) {
+			return '';
+		}
+
+		ob_start();
+
+	
+		if ( ! empty( $atts['more_info'] ) ) {
+			
+		echo '<div class="cart-info-wrapper">';
+		
+			woocommerce_template_loop_simple_add_to_cart( array(
+			'quantity' => $atts['quantity'],
+		) );
+			
+			echo '<a class="more_info" href="' . $atts['more_info'] . '">More info</a>';
+			
+		echo '</div>';
+			
+		} else {
+			
+			woocommerce_template_loop_simple_add_to_cart( array(
+			'quantity' => $atts['quantity'],
+		) );
+			
+		}
+
+
+
+		// Restore Product global in case this is shown inside a product post.
+		wc_setup_product_data( $post );
+
+		return ob_get_clean();
+	}
+
+
+	/**
+	 * Display a single product price
+	 *
+	 * @param array $atts Attributes.
+	 * @return string
+	 */
+	 add_shortcode( 'simple_price', 'simple_price' );
+	 
+	function simple_price( $atts ) {
+		global $post;
+
+		if ( empty( $atts ) ) {
+			return '';
+		}
+
+		$atts = shortcode_atts( array(
+			'id'         => '',
+			'class'      => '',
+			'sku'        => '',
+			'style'      => '',
+		), $atts, 'simple_price' );
+
+		if ( ! empty( $atts['id'] ) ) {
+			$product_data = get_post( $atts['id'] );
+		} elseif ( ! empty( $atts['sku'] ) ) {
+			$product_id   = wc_get_product_id_by_sku( $atts['sku'] );
+			$product_data = get_post( $product_id );
+		} else {
+			return '';
+		}
+
+		$product = is_object( $product_data ) && in_array( $product_data->post_type, array( 'product', 'product_variation' ), true ) ? wc_setup_product_data( $product_data ) : false;
+
+		if ( ! $product ) {
+			return '';
+		}
+		
+
+		ob_start();
+
+		//print_r($product);
+
+		echo '<div class="single-product-prices ' . esc_attr( $atts['class'] ) . '" style="' . ( empty( $atts['style'] ) ? '' : esc_attr( $atts['style'] ) ) . '">';
+		
+
+
+			// @codingStandardsIgnoreStart
+			echo "<span class='no-tax-price'>£" .$product->price . "</span>";
+			// @codingStandardsIgnoreEnd
+			
+			
+			echo "<span class='tax-price'>" . get_field('price_including_vat', $atts['id']) . "</span>";
+
+	
+
+		echo '</div>';
+
+		// Restore Product global in case this is shown inside a product post.
+		wc_setup_product_data( $post );
+
+		return ob_get_clean();
+	}
+	
+	
+/**
+	 * Display a single product title
+	 */
+	 add_shortcode( 'simple_title', 'simple_title' );
+	 
+	function simple_title( $atts ) {
+		global $post;
+
+		if ( empty( $atts ) ) {
+			return '';
+		}
+
+		$atts = shortcode_atts( array(
+			'id'         => '',
+			'class'      => '',
+			'sku'        => '',
+			'style'      => '',
+			'wrapper'    => 'h2',
+			'trademark'  => 'false',
+			'link'  => '',
+		), $atts, 'simple_title' );
+
+		if ( ! empty( $atts['id'] ) ) {
+			$product_data = get_post( $atts['id'] );
+		} elseif ( ! empty( $atts['sku'] ) ) {
+			$product_id   = wc_get_product_id_by_sku( $atts['sku'] );
+			$product_data = get_post( $product_id );
+		} else {
+			return '';
+		}
+
+		$product = is_object( $product_data ) && in_array( $product_data->post_type, array( 'product', 'product_variation' ), true ) ? wc_setup_product_data( $product_data ) : false;
+
+		if ( ! $product ) {
+			return '';
+		}
+
+		ob_start();
+		
+		if ( ! empty( $atts['link'] ) ) {
+			echo '<a href="' . $atts['link'] . '" class="product-title-link">';
+		}
+
+		echo '<' . ( empty( $atts['wrapper'] ) ? '' : esc_attr( $atts['wrapper'] ) ) . ' class="single-wc-title ' . esc_attr( $atts['class'] ) . '" style="' . ( empty( $atts['style'] ) ? '' : esc_attr( $atts['style'] ) ) . '">';
+		
+
+
+			// @codingStandardsIgnoreStart
+			echo $product->get_title();
+			// @codingStandardsIgnoreEnd
+			
+			if ( wc_string_to_bool( $atts['trademark'] ) ) {
+			// @codingStandardsIgnoreStart
+			echo "&reg;";
+			// @codingStandardsIgnoreEnd
+			}
+		
+
+	
+
+		echo '</' . ( empty( $atts['wrapper'] ) ? '' : esc_attr( $atts['wrapper'] ) ) . '>';
+		
+		if ( ! empty( $atts['link'] ) ) {
+			echo '</a>';
+		}
+
+		// Restore Product global in case this is shown inside a product post.
+		wc_setup_product_data( $post );
+
+		return ob_get_clean();
+	}
+	
+	
+/**
+	 * Display woocommerce images
+	 */
+	 
+	 	//Enqueue Flexslider for page
+
+		function register_flexslider() {
+			wp_register_script( 'wc_gallery',  '/wp-content/plugins/woocommerce-shortcodes/js/gallery.js', array(), '', true );
+			wp_register_script( 'wc_flexslider',  '/wp-content/plugins/woocommerce/assets/js/flexslider/jquery.flexslider.min.js', array(), '', true );
+			wp_register_script( 'wc_zoom',  '/wp-content/plugins/woocommerce/assets/js/zoom/jquery.zoom.min.js', array(), '', true );
+			wp_enqueue_style( 'wc_gallery',  '/wp-content/plugins/woocommerce-shortcodes/css/gallery.css' );
+		}
+		add_action( 'wp_enqueue_scripts', 'register_flexslider' );
+	 
+	 add_shortcode( 'simple_images', 'simple_images' );
+	 
+	function simple_images( $atts ) {
+		
+		wp_enqueue_script('wc_gallery');
+		wp_enqueue_style('wc_gallery');
+		wp_enqueue_script('wc_flexslider');
+		wp_enqueue_script('wc_zoom');
+		
+			// Note: `wc_get_gallery_image_html` was added in WC 3.3.2 and did not exist prior. This check protects against theme overrides being used on older versions of WC.
+	if ( ! function_exists( 'wc_get_gallery_image_html' ) ) {
+		return;
+	}
+	
+	global $post;
+
+		if ( empty( $atts ) ) {
+			return '';
+		}
+
+		$atts = shortcode_atts( array(
+			'id'         => '',
+			'sku'         => '',
+		), $atts, 'simple_images' );
+
+		if ( ! empty( $atts['id'] ) ) {
+			$product_data = get_post( $atts['id'] );
+		} elseif ( ! empty( $atts['sku'] ) ) {
+			$product_id   = wc_get_product_id_by_sku( $atts['sku'] );
+			$product_data = get_post( $product_id );
+		} else {
+			return '';
+		}
+
+		$product = is_object( $product_data ) && in_array( $product_data->post_type, array( 'product', 'product_variation' ), true ) ? wc_setup_product_data( $product_data ) : false;
+
+		if ( ! $product ) {
+			return '';
+		}
+		
+
+
+	//print_r($product);
+
+	$columns           = apply_filters( 'woocommerce_product_thumbnails_columns', 4 );
+	$post_thumbnail_id = $product->get_image_id();
+	$wrapper_classes   = apply_filters(
+		'woocommerce_single_product_image_gallery_classes',
+		array(
+			'woocommerce-product-gallery',
+			'woocommerce-product-gallery--' . ( $post_thumbnail_id ? 'with-images' : 'without-images' ),
+			'woocommerce-product-gallery--columns-' . absint( $columns ),
+			'images',
+		)
+	);
+	ob_start();
+	?>
+		<div class="<?php echo esc_attr( implode( ' ', array_map( 'sanitize_html_class', $wrapper_classes ) ) ); ?>" data-columns="<?php echo esc_attr( $columns ); ?>" style="opacity: 0; transition: opacity .25s ease-in-out;">
+			<figure class="woocommerce-product-gallery__wrapper">
+				<?php
+				if ( $post_thumbnail_id ) {
+					$html = wc_get_gallery_image_html( $post_thumbnail_id, true );
+				} else {
+					$html  = '<div class="woocommerce-product-gallery__image--placeholder">';
+					$html .= sprintf( '<img src="%s" alt="%s" class="wp-post-image" />', esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ), esc_html__( 'Awaiting product image', 'woocommerce' ) );
+					$html .= '</div>';
+				}
+
+				echo apply_filters( 'woocommerce_single_product_image_thumbnail_html', $html, $post_thumbnail_id ); // phpcs:disable WordPress.XSS.EscapeOutput.OutputNotEscaped
+
+				do_action( 'woocommerce_product_thumbnails' );
+				?>
+			</figure>
+		</div> 
+	
+		
+		<?php	
+return ob_get_clean();
+ } 
+		
+
+
+
